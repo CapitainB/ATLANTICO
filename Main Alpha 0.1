@@ -34,21 +34,21 @@ void setup() {
    float pos = 0;
    float soma_rumos = 0;
    float marcador_rumos = 0;
-   float rumo_medio ;
+   float rumo_medio;
    float delta_rumo;
+   float delta_rumo2;
    float erro_rumo;
+   float erro_rumo2;
    bool em_bordo = false;
    bool estava_contra = false;
    float far_left = 0;
    float left = 0;
    float right = 0;
    float far_right = 0;
-   float contador_pane = 0;
-   
-
-
-  
-   
+   float contador_pane_bordo = 0;
+   float contador_pane_contra = 0;
+   float distancia_waypoint;
+   float distancia;
   
 }
 
@@ -96,21 +96,19 @@ void loop() {
 
      //rumo_ideal (calculado a partir da posiçao atual e do proximo waypoint) 
      float rumo_ideal;
-     rumo_ideal = gps1.course_to(latitude, longitude, lat2, lon2);  //lat2 e lon2 numa lista de waypoints//
+     rumo_ideal = gps1.course_to(latitude, longitude, lat2, lon2);        //lat2 e lon2 numa lista de waypoints//
      Serial.print("Rumo Ideal (grau): ");
-     Serial.println(float(rumo_ideal) / 100, 2);
+     Serial.println(float(rumo_ideal), 2);    //precisa dividir o resultado da funçao por 100?
    
      soma_rumos += rumo_real;
      marcador_rumos ++;
-     
-     Serial.print("Rumo Ideal (grau): ");
-     Serial.println(float(rumo_ideal) / 100, 2);
-     
+
+  }
      
      
      //PILOTO AUTOMÁTICO//
      
-     if (marcador_rumos > 10 || !em_bordo){
+     if (marcador_rumos > 10 && !em_bordo){      //falta verificar a média dos hall
      rumo_medio = soma_rumos / marcador_rumos;
      delta_rumo = rumo_medio - rumo_ideal;
      
@@ -125,26 +123,24 @@ void loop() {
        //VENTO FAVORAVEL//
        if (far_left == 0 && left == 0 && right == 0 && far_right == 0) {
      
-          if ((delta_rumo) < -10 && (delta_rumo) > -180 || (delta_rumo) < 350  && (delta_rumo) > 180) ) {    //virar pra direita
-            if ! estava_contra {
+          if ((delta_rumo) < -10 && (delta_rumo) > -180 || (delta_rumo) < 350  && (delta_rumo) > 180) ) {    //virar pra boreste
+            if !estava_contra {
               pos += erro_rumo;
             }
-            else {
+            else {     //orça um pouco, pq antes estava no contravento e o erro_rumo é grande
               pos += 5;
             }
-          if ((delta_rumo) > 10 && (delta_rumo) < 180 || (delta_rumo) > -350 && (delta_rumo) < -180) {      //virar pra esquerda
+          }
+          if ((delta_rumo) > 10 && (delta_rumo) < 180 || (delta_rumo) > -350 && (delta_rumo) < -180) {      //virar pra bombordo
             if !estava_contra {
               pos -= erro_rumo;
             }
             else {
-               pos -= 5;
-            }
-           
-          }
+               pos -= 5;      //orça um pouco, pq antes estava no contravento e o erro_rumo é grande
+            }   
+         }
           estava_contra = false;
        }
-     
-       //VENTO CONTRA//
      
       //VENTO CONTRA POR BORESTE//
       
@@ -156,12 +152,11 @@ void loop() {
          
          if (far_right == 0 && right == 1) {
          pos -= 15;
+         contador_pane_contra += 1
          }
-      
-      
+    
       estava_contra = true;
       }
-      
       
       //VENTO CONTRA POR BOMBORDO//
      
@@ -173,47 +168,59 @@ void loop() {
          
          if (far_left == 0 && left == 1) {
          pos += 15;
+         contador_pane_contra += 1;         
          }
      
-      estava_contra = true
+      estava_contra = true;
      }
-     
-     
+    
        soma_rumos = 0;
        marcador_rumos = 0;
-     }
+   }
      
+     
+     if left = 0 && right = 0 {       //zera os marcadores de pane se o vento não está mais contra
+         contador_pane_contra = 0
+         }
+         
      
      //BORDO//
      
-    if ((delta_rumo) < -10 && (delta_rumo) > -180 || (delta_rumo) > 10 && (delta_rumo) < 180) {
-        erro_rumo = abs(delta_rumo);
+    delta_rumo2 = rumo_real - rumo_ideal;        //aqui usa o rumo_real, pq o rumo muda rápido durante o bordo
+     
+    if ((delta_rumo2) < -10 && (delta_rumo2) > -180 || (delta_rumo2) > 10 && (delta_rumo2) < 180) {
+        erro_rumo2 = abs(delta_rumo);
        }
      
-    if ((delta_rumo) < 350  && (delta_rumo) > 180) || (delta_rumo) > -350 && (delta_rumo) < -180)) {
-        erro_rumo = abs(delta_rumo - 360);
+    if ((delta_rumo2) < 350  && (delta_rumo2) > 180) || (delta_rumo2) > -350 && (delta_rumo2) < -180)) {
+        erro_rumo2 = abs(delta_rumo - 360);
        }
      
-     //BORDO A BORESTE
+     //BORDO A BORESTE//
      if (!em_bordo && far_right == 1 && right == 0 && erro_rumo > 90 && ((delta_rumo) < -10 && (delta_rumo) > -180 || (delta_rumo) < 350  && (delta_rumo) > 180) )) {
-           pos = 150;
+           pos = 180;
+           servo.write(pos);
+           delay(500)
            em_bordo = true;
          }
-     
-     
+    
      //BORDO A BOMBORDO//
      
      if (!em_bordo && far_left == 1 && left == 0 && erro_rumo > 90 && ((delta_rumo) > 10 && (delta_rumo) < 180 || (delta_rumo) > -350 && (delta_rumo) < -180){
-            pos = 30;
+            pos = 0;
+            servo.write(pos);
+            delay(500)
             em_bordo = true;
      }
      
      //FIM DO BORDO//
      
      if (em_bordo) {
-        contador_pane += 1;
-        if (erro_rumo < 5) {
+        contador_pane_bordo += 1;
+        if (erro_rumo2 < 10) {
            pos = 90;
+           servo.write(pos);
+           delay(300);
            em_bordo = false;
            contador_pane = 0;
            }
@@ -221,31 +228,36 @@ void loop() {
      
      //MODO PANE//
      
-     if (contador_pane > 20) {
+     if (contador_pane_bordo > 20 || contador_pane_contra > 20) {
          pos = 90;
          em_bordo = false;
          servo.write(pos);
          delay(10000);
+         contador_pane_bordo = 0;
+         contador_pane_contra = 0;
      } 
-     
-     erro_rumo = 0;
      
      //MOVE SERVO//
      
-     //colocar código pra impedir pos negativo ou maior que 180
-     servo.write(pos);
-     delay(100);
+     if pos > 180 {     //impede angulos impossiveis pro servo
+         pos = 180
+         }
+     if pos < 0 {
+         pos = 0
+         }
+         
+     if ! em_bordo {
+         servo.write(pos);
+         delay(100);       //talvez tenha qe aumentar esse delay pra dar tempo do barco responder
+         }              //talvez tenha que voltar um pouco o leme depois que mover
      
      
      
      //PROXIMO WAYPOINT
      
+     distancia = gps1.distance_between(latitude, longitude, lat2, long2);
+     if distancia < distancia_waypoint {
      
-     
-     
-     
-     
-     
-     
-  }
+     }
+    
 }
