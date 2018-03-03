@@ -217,12 +217,12 @@ void loop() {
      
      if (em_bordo) {
         contador_pane_bordo += 1;
-        if (erro_rumo2 < 10) {
+        if (erro_rumo2 < 10) {     //talvez seja melhor usar aqui que o hall oposto ligue
            pos = 90;
            servo.write(pos);
            delay(300);
            em_bordo = false;
-           contador_pane = 0;
+           contador_pane_bordo = 0;
            }
      }
      
