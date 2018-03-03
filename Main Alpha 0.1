@@ -16,7 +16,7 @@ Servo servo; // Variável Servo
 
 
 
-SoftwareSerial serial1(10, 11); // RX, TX
+SoftwareSerial serial1(6, 7); // RX, TX
 TinyGPS gps1;
 
 void setup() {
@@ -28,7 +28,7 @@ void setup() {
 
    Serial.println("O GPS está aguardando pelo sinal dos satelites...");
    
-   servo.attach(6);  //Define a porta a ser ligada ao servo, a 6
+   servo.attach(5);  //Define a porta a ser ligada ao servo, a 5
    servo.write(0); // Inicia motor posição zero
    
    float pos = 0;
